@@ -5,7 +5,7 @@ import time
 import psutil  # For CPU memory usage
 
 # Model and Tokenizer Setup
-model_name = "meta-llama/Llama-2-70b-chat-hf"
+model_name = "meta-llama/Llama-3.2-90B-Vision"
 token = "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"  # Replace with your Hugging Face token
 
 # Configure quantization with BitsAndBytesConfig for 4-bit quantization
@@ -19,8 +19,8 @@ quant_config = BitsAndBytesConfig(
 # Adjust max memory based on your system's GPU and CPU capacity
 available_gpu_memory = torch.cuda.get_device_properties(0).total_memory // (1024 ** 3)  # In GB
 max_memory = {
-    "cpu": "100GiB",  # Allow large offload to CPU
-    0: f"{available_gpu_memory - 2}GiB",  # Reserve 2GiB of GPU memory for other processes
+    "cpu": "200GiB",  # Allow large offload to CPU
+    0: f"{available_gpu_memory - 4}GiB",  # Reserve 4GiB of GPU memory for other processes
 }
 
 # Load the tokenizer with authentication token
@@ -52,36 +52,16 @@ except RuntimeError as e:
     )
     print("Model successfully loaded on CPU.")
 
-# Define the prompt format
-mod_prompt = """ Below is an instruction that describes a task, paired with an input that provides further context. Write a response that directly completes the task.
-
-### Instruction:
-
-{}
-
-
-### Input:
-
-{}
-
-
-### Corrected Transcription:
-
-{}"""
-
-# Format the prompt
-def format_prompt(instruction, input_text, output_text=""):
-    """
-    Format the prompt with the provided instruction, input, and optional output.
-    """
-    return mod_prompt.format(instruction, input_text, output_text)
-
-# Function to generate a response, track execution time, and monitor memory usage
+# Function to track execution time and memory usage
 def ask_question(model, tokenizer, instruction, input_text, max_new_tokens=200):
-    formatted_prompt = format_prompt(instruction, input_text)
-    inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
+    """
+    Generate a response, track execution time, and monitor memory usage.
+    """
+    # Format the input
+    prompt = f"{instruction}\n\nInput:\n{input_text}"
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-    # Record initial CPU memory usage
+    # Record memory usage before processing
     cpu_memory_initial = psutil.virtual_memory().used / (1024 ** 3)  # In GB
 
     # Generate response and track execution time
@@ -96,7 +76,7 @@ def ask_question(model, tokenizer, instruction, input_text, max_new_tokens=200):
     )
     end_time = time.time()
 
-    # Record final CPU memory usage
+    # Record memory usage after processing
     cpu_memory_final = psutil.virtual_memory().used / (1024 ** 3)  # In GB
 
     # Decode the response
@@ -113,21 +93,19 @@ def ask_question(model, tokenizer, instruction, input_text, max_new_tokens=200):
 
     return response_text, execution_time, cpu_memory_initial, cpu_memory_final, gpu_memory_initial, gpu_memory_final
 
-# Example instruction and input
-instruction = (
-    "This is a transcription from one of Greensboro airport frequency towers. "
-    "Generate and return only the corrected transcription. "
-    "Do not explain the corrections or provide steps for correcting."
-)
-input_text = (
-    "taxi way delta closed between taxi way kilo and taxi way delto one taxi way kilo klosed "
-    "between runway one for and taxi way kilo one taxi way te one betwen taxi way delta and "
-    "ils runway five right out of service runway five righ approach fht istm out of service "
-    "runway five right precision approach passing t kaber out of servie runway two three righlt "
-    "rea tak runway hold short and"
-)
 
-# Get response and execution time
+# Example Usage
+instruction = "This is a transcription from one of Greensboro airport frequency towers. "\
+              "Generate and return only the corrected transcription. "\
+              "Do not explain the corrections or provide steps for correcting."
+
+input_text = "taxi way delta closed between taxi way kilo and taxi way delto one taxi way kilo klosed "\
+             "between runway one for and taxi way kilo one taxi way te one betwen taxi way delta and "\
+             "ils runway five right out of service runway five righ approach fht istm out of service "\
+             "runway five right precision approach passing t kaber out of servie runway two three righlt "\
+             "rea tak runway hold short and"
+
+# Generate and display the response
 print("Generating response...")
 response, exec_time, cpu_memory_initial, cpu_memory_final, gpu_memory_initial, gpu_memory_final = ask_question(
     model, tokenizer, instruction, input_text, max_new_tokens=200
