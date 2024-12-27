@@ -1,0 +1,16 @@
+python3 -m venv ~/Downloads/colab_env
+source ~/Downloads/colab_env/bin/activate
+pip install -r ~/Downloads/colab_requirements.txt
+pip install -r ~/Downloads/requirement.txt
+pip install notebook
+pip install ipykernel
+python -m ipykernel install --user --name=colab_env --display-name "Python (colab_env)"
+jupyter notebook
+nvidia-smi
+kill -9 ???
+pip3 install 'accelerate==0.26.0'
+pip install deepspeed
+sudo apt update 
+sudo apt install -y mpich libmpich-dev python3-dev build-essential
+pip install mpi4py
+pip freeze >  For_everett_venv_pack.txt
